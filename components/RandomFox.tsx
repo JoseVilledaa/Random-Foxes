@@ -1,20 +1,34 @@
 import { useRef, useEffect, useState } from "react";
 import App from "../pages/_app";
+import type { ImgHTMLAttributes } from "react";
 
-type Props = { image: string };
+type LazyImageProps = {
+  src: string;
+  onLazyLoad?: (img: HTMLImageElement) => void;
+};
+type ImageNative = ImgHTMLAttributes<HTMLImageElement>;
+type Props = LazyImageProps & ImageNative;
 
-export const RandomFox = ({ image }: Props): JSX.Element => {
+export const LazyImage = ({
+  src,
+  onLazyLoad,
+  ...imgProps
+}: Props): JSX.Element => {
   const node = useRef<HTMLImageElement>(null);
 
-  const [src, setSrc] = useState<string>(
+  const [currentSrc, setCurrentSrc] = useState<string>(
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjMyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2ZXJzaW9uPSIxLjEiLz4="
   );
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setSrc(image);
+        if (!entry.isIntersecting || !node.current) {
+          return;
+        }
+        setCurrentSrc(src);
+        if (typeof onLazyLoad === "function") {
+          onLazyLoad(node.current);
         }
       });
     });
@@ -25,9 +39,7 @@ export const RandomFox = ({ image }: Props): JSX.Element => {
     return () => {
       observer.disconnect();
     };
-  }, [image]);
+  }, [src, onLazyLoad]);
 
-  return (
-    <img ref={node} width={320} height="auto" className="rounded bg-gray-300" src={src} />
-  );
+  return <img ref={node} src={currentSrc} {...imgProps} />;
 };
